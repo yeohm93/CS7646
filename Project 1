@@ -1,0 +1,107 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+
+def author():
+    return "hyeo30"
+
+def gtid():
+    return 903952479	 		  
+  		  	   		  		 		  		  		    	 		 		   		  		 		  		  		    	 		
+def get_spin_result(win_prob):  		  	   		  		 		  		  		    			 		  		  		    	 		 		   		 	  
+    result = False  		  	   		  		 		  		  		    	 	   			  
+    if np.random.random() <= win_prob:  		  	   		  		 		  		  		    		 		   		 		  
+        result = True  		  	   		  		 		  		  		    	 		 		   		 		  
+    return result  		  	   		  		 		  		  		    	 		 		   		 		  
+  		  	   		  		 		  		  		    	 		 		     	  		 		  		  		    	 		 		   		 	  	 		 		   	 			 		  		  		    	 		 		   
+def simulator(ep_bets, winnings_limit, win_prob, bankroll=None):
+    epWinningsArray = np.empty(ep_bets, dtype=np.int_)
+    bet = 0
+    epWinnings = 0
+
+    while epWinnings < winnings_limit and bet < ep_bets - 1:
+        bet_amount = 1
+        won = False
+        while not won:
+            bet += 1
+            won = get_spin_result(win_prob)
+            if won:
+                epWinnings += bet_amount
+            else:
+                epWinnings -= bet_amount
+                bet_amount *= 2
+            epWinningsArray[bet - 1] = epWinnings
+            if bankroll is not None:
+                if epWinnings == -bankroll:
+                    epWinningsArray[bet:] = epWinnings
+                    return epWinningsArray
+                if bet_amount > bankroll + epWinnings:
+                    bet_amount = bankroll + epWinnings
+
+    epWinningsArray[bet:] = winnings_limit
+    return epWinningsArray
+
+def experiment(eps, ep_bets, winnings_limit, win_prob, bankroll=None):
+    df = getEpsDataframe(eps, ep_bets, winnings_limit, win_prob, bankroll)
+    
+    if bankroll is None:
+        plt.axis([0, 300, -256, 100])
+        plt.title("Figure 1: 10 episodes with unlimited bankroll")
+        plt.xlabel("Bet number")
+        plt.ylabel("Overall Winnings")
+        plt.plot(df.iloc[:, :10])  
+        figure = "Figure1.png"
+        plt.savefig(figure)
+        plt.clf()
+
+    df_std = df.std(axis=1)
+    
+    dfMean = df.mean(axis=1)
+    plt.axis([0, 300, -256, 100])
+    plt.title(f"Figure {2 if bankroll is None else 4}: 1000 episodes mean with {'unlimited' if bankroll is None else bankroll} bankroll")
+    plt.xlabel("Bet number")
+    plt.ylabel("Mean of Winnings")
+    plt.plot(dfMean, label="mean")
+    plt.plot(dfMean + df_std, label="mean+std")
+    plt.plot(dfMean - df_std, label="mean-std")
+    plt.legend()
+    plt.savefig(f"Figure{2 if bankroll is None else 4}.png")
+    plt.clf()
+    
+    dfMedian = df.median(axis=1)
+    plt.axis([0, 300, -256, 100])
+    plt.title(f"Figure {3 if bankroll is None else 5}: 1000 episodes median with {'unlimited' if bankroll is None else bankroll} bankroll")
+    plt.xlabel("Bet number")
+    plt.ylabel("Median of Winnings")
+    plt.plot(dfMedian, label="median")
+    plt.plot(dfMedian + df_std, label="median+std")
+    plt.plot(dfMedian - df_std, label="median-std")
+    plt.legend()
+    plt.savefig(f"Figure{3 if bankroll is None else 5}.png")
+    plt.clf()
+
+def getEpsDataframe(eps, ep_bets, winnings_limit, win_prob, bankroll=None):
+    eps_dfs = []  # Create an empty list to store DataFrames for each episode
+
+    for i in range(eps):
+        ep_array = simulator(ep_bets, winnings_limit, win_prob, bankroll)
+        ep_df = pd.DataFrame({f"Episode{i + 1}": ep_array})
+        eps_dfs.append(ep_df)
+
+    eps_df = pd.concat(eps_dfs, axis=1)
+    eps_df.index += 1
+
+    return eps_df
+
+def test_code():
+    win_prob = 0.60
+    np.random.seed(gtid())
+    print(get_spin_result(win_prob))
+    
+    experiment(1000, 1000, 80, win_prob)
+    experiment(1000, 1000, 80, win_prob, 256)
+
+
+if __name__ == "__main__":
+    test_code()	  	   		  		 		  		  		    	 		 		   		 	
